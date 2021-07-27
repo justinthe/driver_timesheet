@@ -1,30 +1,31 @@
 import os
-from sqlalchemy import Column, String, Integer, create_engine, Boolean, ForeignKey
+from datetime import datetime 
+from sqlalchemy import Column, String, Integer, create_engine, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from flask_sqlalchemy import SQLAlchemy
 import json
 
 database_name = "driver_timesheet"
-database_path = "postgresql://{}:{}@{}/{}".format(
-                        'app_timesheet', 'password', 'localhost:5432', database_name)
+
+# database_path = "postgresql://{}:{}@{}/{}".format("postgres", "password", "localhost:5432", database_name)
+
+db_username = os.environ["DB_USER"]
+db_password = os.environ["DB_PASSWORD"]
+db_host = os.environ["DB_HOST"]
+database_path = "postgresql://{}:{}@{}/{}".format(db_username, db_password, db_host, database_name)
+
+
 
 db = SQLAlchemy()
 
-'''
-setup_db(app)
-    binds a flask app and SQLAlchemy service
-'''
 def setup_db(app, database_path=database_path):
     app.config["SQLALCHEMY_DATABASE_URI"] = database_path
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SQLALCHEMY_ECHO"] = True
     db.app = app
     db.init_app(app)
     db.create_all()
 
-
-'''
-Reference tables
-'''
 
 class User(db.Model):
     __tablename__ = 'rf_user'
@@ -34,6 +35,9 @@ class User(db.Model):
     firstname = Column(String)
     lastname = Column(String)
     roles = relationship("UserRole", back_populates="user")
+    timesheets = relationship("Timesheet", back_populates="user")
+    approvals = relationship("Approval", back_populates="user")
+
 
     def __init__(self, username, firstname, lastname):
         self.username = username
@@ -67,7 +71,7 @@ class Role(db.Model):
     description = Column(String, nullable=True)
 
     users = relationship("UserRole", back_populates="role")
-
+    
     def format(self):
         return {
             "id": self.roleid,
@@ -81,13 +85,78 @@ class UserRole(db.Model):
     userid = Column(Integer, ForeignKey('rf_user.userid'), primary_key=True) 
     roleid = Column(Integer, ForeignKey('rf_role.roleid'), primary_key=True)
     valid = Column(Boolean)
+
     role = relationship("Role", back_populates="users")
     user = relationship("User", back_populates="roles")
 
-#    def addRoleToUser(self):
-# user_roles = db.Table('user_roles', 
-#             db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
-#             db.Column('role_id', db.Integer, db.ForeignKey('role.id'), primary_key=True), 
-#             db.Column('dtstart', db.Date, primary_key=True), 
-#             db.Column('valid', db.Boolean, default=True)
-#         )
+    def __init(self, user, role, valid):
+        self.user = user
+        self.role = role
+        self.valid = valid
+    
+    def addUserRole(self):
+        db.session.add(self)
+        db.session.commit()
+
+class Timesheet(db.Model):
+    __tablename__ = "timesheet"
+    timesheetid = Column(Integer, primary_key=True, autoincrement=True)
+    userid = Column(Integer, ForeignKey('rf_user.userid'))
+    dttimeenter = Column(DateTime, default=datetime.now)
+    inout = Column(Boolean)
+
+    user = relationship("User", back_populates="timesheets")
+    timesheets = relationship("Approval", back_populates="timesheet")
+
+    def __init__(self, user, dttimeenter,  inout):
+        self.user = user
+        self.dttimeenter = dttimeenter
+        self.inout = inout
+
+    def addEntry(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def format(self):
+        return {
+            "timesheetid": self.timesheetid,
+            "userid": self.userid,
+            "dttimeenter": self.dttimeenter,
+            "inout": self.inout,
+                }
+
+    
+class Approval(db.Model):
+    __tablename__ = "approval"
+    timesheetid = Column(Integer, ForeignKey("timesheet.timesheetid"), primary_key=True)
+    userid = Column(Integer, ForeignKey('rf_user.userid'))
+    dttimeenter = Column(DateTime, default=datetime.now)
+    approval = Column(Boolean, default=True)
+
+    timesheet = relationship("Timesheet", back_populates="timesheets")
+    user = relationship("User", back_populates="approvals")
+
+    def __init__(self, timesheet, user,  dttimeenter, approval):
+        self.timesheet = timesheet
+        self.user = user
+        self.dttimeenter = dttimeenter
+        self.approval = approval
+
+    def addEntry(self):
+        db.session.add(self)
+        db.session.commit()
+
+    # # approve or reject
+    # def approve(self, approval=True):
+    #     self.approval = approval
+    #     db.session.add(self)
+    #     db.session.commit()
+
+    
+    def format(self):
+        return {
+            "timesheetid": self.timesheetid,
+            "userid": self.userid,
+            "dttimeenter": self.dttimeenter,
+            "approval": self.approval,
+                }

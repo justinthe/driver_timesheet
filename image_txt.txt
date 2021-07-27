@@ -1,0 +1,119 @@
+[
+    {
+        "Id": "sha256:842106e136d4223d7bffc92df6bd3f998060afc5622762043a664972cc56ef18",
+        "RepoTags": [
+            "test:latest"
+        ],
+        "RepoDigests": [],
+        "Parent": "sha256:add47cda5f5d850f39eb9b24de4b9b8b1b290ec71ef82c8a347456e407dab05b",
+        "Comment": "",
+        "Created": "2021-07-26T12:56:38.871661453Z",
+        "Container": "35f7dc126db61933f20e985a046167cf07b026b2a6d404dbef92b726bfdc5a9f",
+        "ContainerConfig": {
+            "Hostname": "35f7dc126db6",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "LANG=C.UTF-8",
+                "GPG_KEY=0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D",
+                "PYTHON_VERSION=3.7.9",
+                "PYTHON_PIP_VERSION=21.0.1",
+                "PYTHON_GET_PIP_URL=https://github.com/pypa/get-pip/raw/4be3fe44ad9dedc028629ed1497052d65d281b8e/get-pip.py",
+                "PYTHON_GET_PIP_SHA256=8006625804f55e1bd99ad4214fd07082fee27a1c35945648a58f9087a714e9d4",
+                "FLASK_APP=flaskr",
+                "DB_USER=postgres",
+                "DB_PASSWORD=password",
+                "DB_HOST=127.0.0.1:5432",
+                "PYTHONDONTWRITEBYTECODE=1"
+            ],
+            "Cmd": [
+                "/bin/sh",
+                "-c",
+                "#(nop) ",
+                "CMD [\"gunicorn\" \"'flaskr:create_app()'\"]"
+            ],
+            "Image": "sha256:add47cda5f5d850f39eb9b24de4b9b8b1b290ec71ef82c8a347456e407dab05b",
+            "Volumes": null,
+            "WorkingDir": "/app",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {}
+        },
+        "DockerVersion": "19.03.12",
+        "Author": "",
+        "Config": {
+            "Hostname": "",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "LANG=C.UTF-8",
+                "GPG_KEY=0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D",
+                "PYTHON_VERSION=3.7.9",
+                "PYTHON_PIP_VERSION=21.0.1",
+                "PYTHON_GET_PIP_URL=https://github.com/pypa/get-pip/raw/4be3fe44ad9dedc028629ed1497052d65d281b8e/get-pip.py",
+                "PYTHON_GET_PIP_SHA256=8006625804f55e1bd99ad4214fd07082fee27a1c35945648a58f9087a714e9d4",
+                "FLASK_APP=flaskr",
+                "DB_USER=postgres",
+                "DB_PASSWORD=password",
+                "DB_HOST=127.0.0.1:5432",
+                "PYTHONDONTWRITEBYTECODE=1"
+            ],
+            "Cmd": [
+                "gunicorn",
+                "'flaskr:create_app()'"
+            ],
+            "Image": "sha256:add47cda5f5d850f39eb9b24de4b9b8b1b290ec71ef82c8a347456e407dab05b",
+            "Volumes": null,
+            "WorkingDir": "/app",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": null
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 971675805,
+        "VirtualSize": 971675805,
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/0e9d08871f3f5c218550fe6c4d72629e7ba089162ac5d09c65f095097b990585/diff:/var/lib/docker/overlay2/647ac1a116d80e29f98ac0eaeb235c1587391b767304e084251a6fa9c4a2671d/diff:/var/lib/docker/overlay2/2cc67dda48e88652acb4407830928c849d36258923f7412f58eb4098852cfa05/diff:/var/lib/docker/overlay2/fbc8c029dac40b9181178c6656aa37d86b2b58fe230fe913e94f8dedf5e8e9c5/diff:/var/lib/docker/overlay2/b85f9a7f7b421d6f8bd95d62867aa936d872749d8e1e0e06f6feedc4c81d20e0/diff:/var/lib/docker/overlay2/675bfd2a871582014b53255f8dbe777902ca04671b0558fd741088aa7aaac35a/diff:/var/lib/docker/overlay2/507947f9a915649b1ee492f9ba62a67505bc5a30dd175eda20b61ffcf2dcd2d6/diff:/var/lib/docker/overlay2/5c3c52758dab8b6eccc9b0a6746f6c5e835c78ee067c6de099875248dfc73886/diff:/var/lib/docker/overlay2/8114e62da10fb027a18ef5a30d55aa23418f211c5034d489a080e600794658f5/diff:/var/lib/docker/overlay2/be87ce04928da66a7cc192911ee4f09c2320e62947e3c7b7085629c416c3a32d/diff",
+                "MergedDir": "/var/lib/docker/overlay2/4b4cf0a1e8569cfc5986b3080ea8d96a560b70f284bb0af2afd257074248705d/merged",
+                "UpperDir": "/var/lib/docker/overlay2/4b4cf0a1e8569cfc5986b3080ea8d96a560b70f284bb0af2afd257074248705d/diff",
+                "WorkDir": "/var/lib/docker/overlay2/4b4cf0a1e8569cfc5986b3080ea8d96a560b70f284bb0af2afd257074248705d/work"
+            },
+            "Name": "overlay2"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:7f03bfe4d6dc12155877f0d2e8b3429090bad1af7b005f75b7b3a874f386fd5a",
+                "sha256:909e93c7174510acfb8f423fd685094540810e3288b99932ca2ab94d9fd99e1d",
+                "sha256:4ef81dc52d996453d718fe990558f82275ee8c0270adbf36966743370692863d",
+                "sha256:da654bc8bc80edf45dcec6dc7b2c71e1c283b1ffe49e81cd6289498ab9b58e5f",
+                "sha256:10bf86ff9f6a0d24fa41491e74b8dcdeb8b23cc654a2a5e36573eac5e40ea25c",
+                "sha256:e3d73f29c6746d2b19dbcc7bfa7b2464c4951807237658ad483faa014f9f9187",
+                "sha256:633da5d9635c7a5eeb902ccde3437eb668bae99b3b33e1764d5b11835dbc94ce",
+                "sha256:95d8fd84fb133154830e4cee4483e536f13d6578b15049c73b06b2a978989001",
+                "sha256:05a9a13cc3ee9d0d625c21020b5799d5a661a7ac3e5f7194a19690946770a3bf",
+                "sha256:27306a98ec6220112be57e7f017cb75462abe7f4a125c434479e9555f5dd65d2",
+                "sha256:cf00b0d6fb8ebd1cff4a7cf4ceff40f2d2d24d130e136ac1fda79e4461c48929"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2021-07-26T19:56:39.525498615+07:00"
+        }
+    }
+]
