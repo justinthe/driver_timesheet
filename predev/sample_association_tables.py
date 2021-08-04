@@ -74,6 +74,13 @@ session.commit()
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+
+import os
+
+os.environ['DB_USER'] = 'postgres'
+os.environ['DB_PASSWORD'] = 'password'
+os.environ['DB_HOST'] = 'localhost:5432'
+
 from models import *
 
 from sqlalchemy import create_engine
@@ -91,3 +98,12 @@ time1 = Timesheet(user=adminuser, dttimeenter=datetime.now(), inout=True)
 
 session.add(time1)
 session.commit()
+
+
+data = session.query(func.public.get_summary_timesheet('1/jan/2021', '25/jan/2021', 24)).all()
+
+
+# data = get_report_summary_from_db('21/jul/2021','26/jul/2021',23)
+# (func.get_summary_timesheet(dtstart, dtend, userid)).all()  
+
+# DBUtil.get_approved_timesheet

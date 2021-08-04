@@ -1,6 +1,7 @@
 import os
 from datetime import datetime 
-from sqlalchemy import Column, String, Integer, create_engine, Boolean, ForeignKey, DateTime
+from sqlalchemy import Column, String, Integer, create_engine, Boolean, \
+        ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 from flask_sqlalchemy import SQLAlchemy
 import json
@@ -25,6 +26,61 @@ def setup_db(app, database_path=database_path):
     db.app = app
     db.init_app(app)
     db.create_all()
+
+
+class DBUtil():
+
+    # def get_approved_timesheet(dtstart, dtend, userid):
+    #     data = db.session.query(func.public.get_summary_timesheet(dtstart, dtend, userid)).all()
+    #     print("Type:{}".format(len(data)))
+    #     return data
+
+   
+    def call_db_function(fn_name, *args):
+       data = None
+       
+       # get_summary_timesheet(dtstart, dtend, userid)
+       if fn_name == 'get_summary_timesheet':
+           data = db.session.query(func.get_summary_timesheet(args[0], args[1], args[2])).all()
+       
+       # get_approved_timesheet(dtstart, dtend, userid)    
+       if fn_name == 'get_approved_timesheet':
+           data = db.session.query(func.get_approved_timesheet(args[0], args[1], args[2])).all()
+
+       # get_summary_rate(dtstart, dtend, userid)
+       if fn_name == 'get_summary_rate':
+           data = db.session.query(func.get_summary_rate(args[0], args[1], args[2])).all()
+           
+       print("fn_name: {}, data:{}".format(fn_name, data))
+       return data
+
+    # def fmt_approved_timesheet(data):
+    def fmt_data_from_fn(fn_name, data):
+       retlist = []
+    
+       for outer_rows in data:
+           for rows in outer_rows:
+               all_words = rows.split(",")
+               dct = {}
+
+               if fn_name == 'get_approved_timesheet':
+                   dct['dte'] = all_words[0][1:]
+                   dct['timein'] = all_words[1][1:-1]
+                   dct['timeout'] = all_words[2][1:-2]
+               
+               if fn_name == 'get_summary_rate' :
+                   dct['dte'] = all_words[0][1:]
+                   dct['hr_ot'] = all_words[1]
+                   dct['holiday'] = all_words[2]
+                   dct['timein'] = all_words[3][1:-1]
+                   dct['timeout'] = all_words[4][1:-1]
+                   dct['tot_allowance'] = all_words[5]
+
+               retlist.append(dct)
+       
+       return retlist
+
+
 
 
 class User(db.Model):

@@ -41,6 +41,14 @@ def default_dtstart_dtend():
 
     return dtstart, dtend
 
+def dateToString(dt):
+    year = dt.strftime("%Y")
+    month = dt.strftime("%b")
+    day = dt.strftime("%d")
+    strDate = day + "/" + month + "/" + year
+
+    return strDate
+
 def create_app(test_config=None):
     app = Flask(__name__)
     setup_db(app)
@@ -155,7 +163,7 @@ def create_app(test_config=None):
                 'status_code': 422,
                 })
 
-  
+ 
     @app.route('/approvals/<int:userid>', methods=['GET'])
     def view_approvals(userid, approved=True):
         def_dtstart, def_dtend = default_dtstart_dtend()
@@ -173,7 +181,31 @@ def create_app(test_config=None):
             'success': True,
             'timesheets': cur,
             })
+
+
+    # 127.0.0.1:5000/reports/24?dtstart=2021-1-1&dtend=2021-1-20
+    @app.route('/reports/<int:userid>', methods=['GET'])
+    def get_summarized_report(userid):
+        def_dtstart, def_dtend = default_dtstart_dtend()
         
+        dtstart = request.args.get('dtstart', def_dtstart, type=toDate)
+        dtend = request.args.get('dtend', def_dtend, type=toDate)
+        dtstart_str = dateToString(dtstart)
+        dtend_str = dateToString(dtend)
+        
+        fn_name = 'get_summary_rate'        
+        data = DBUtil.call_db_function(fn_name, dtstart_str, dtend_str, userid)
+        print("Result: {}".format(data))
+        
+        ret = DBUtil.fmt_data_from_fn(fn_name, data)
+
+        return jsonify({
+                'success': True,
+                'data': ret
+            })
+
+
+
 
 
 
