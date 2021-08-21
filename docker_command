@@ -4,6 +4,7 @@ docker run -e FLASK_APP=flaskr test -e DB_USER=postgres -e DB_PASSWORD=password 
 
 docker run --network="host" test
 
+# if DB_HOST is not define in Dockerfile
 docker run -e DB_HOST=127.0.0.1:5432 --network="host" test
 
 #gunicorn cmd

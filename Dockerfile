@@ -7,7 +7,7 @@ RUN pip install -r requirements.txt
 ENV FLASK_APP=flaskr
 ENV DB_USER=postgres
 ENV DB_PASSWORD=password
-# ENV DB_HOST=127.0.0.1:5432
+ENV DB_HOST=127.0.0.1:5432
 ENV PYTHONDONTWRITEBYTECODE 1
 
 # ENTRYPOINT ["flask", "run"]

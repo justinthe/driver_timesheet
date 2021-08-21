@@ -76,14 +76,14 @@ def create_app(test_config=None):
             selection = Timesheet.query\
                     .filter(Timesheet.dttimeenter >= dtstart)\
                     .filter(Timesheet.dttimeenter <= dtend)\
-                    .filter(~exists().where(Approval.timesheetid == Timesheet.timesheetid))\
-                    .order_by(Timesheet.timesheetid).all()
+                    .filter(exists().where(Approval.timesheetid == Timesheet.timesheetid))\
+                    .order_by(Timesheet.dttimeenter).all()
 
         else:        
             selection = Timesheet.query\
                     .filter(Timesheet.dttimeenter >= dtstart)\
                     .filter(Timesheet.dttimeenter <= dtend)\
-                    .order_by(Timesheet.timesheetid).all()
+                    .order_by(Timesheet.dttimeenter).all()
 
         cur = paginate_records(request, selection)
 
@@ -204,9 +204,7 @@ def create_app(test_config=None):
                 'data': ret
             })
 
-
-
-
+    
 
 
     #####################
