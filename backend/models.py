@@ -1,7 +1,7 @@
 import os
 from datetime import datetime 
 from sqlalchemy import Column, String, Integer, create_engine, Boolean, \
-        ForeignKey, DateTime, func
+        ForeignKey, DateTime, func, text
 from sqlalchemy.orm import relationship
 from flask_sqlalchemy import SQLAlchemy
 import json
@@ -53,6 +53,15 @@ class DBUtil():
            
        print("fn_name: {}, data:{}".format(fn_name, data))
        return data
+
+    # need to call approve data in one go to save bandwitdh. 
+    # get the timesheetids, construct the sql statement from it, 
+    # send statement in one go !
+    def call_raw_sql(sql):
+        statement = text(sql)
+        data = db.session.execute(statement)
+        db.session.commit()
+        return data
 
     # def fmt_approved_timesheet(data):
     def fmt_data_from_fn(fn_name, data):

@@ -128,6 +128,23 @@ def create_app(test_config=None):
                 })
 
 
+    @app.route('/approve/<int:userid>', methods=['POST'])
+    def bulk_approve(userid):
+        body = request.get_json()
+        sql = "insert into rf_user (username, firstname, lastname) select 'kzheng', 'karen', 'zheng'"
+        try:
+            data = DBUtil.call_raw_sql(sql)
+            return jsonify({
+                'success': True,
+                })
+        except:
+            msg = sys.exc_info()
+            return jsonify({
+                    'success': False, 
+                    'message': str(msg),
+                }) 
+
+        
     @app.route('/approvals/<int:userid>', methods=['POST'])
     def timesheet_approval(userid):
         body = request.get_json()
