@@ -10,3 +10,21 @@ docker run -e DB_HOST=127.0.0.1:5432 --network="host" test
 #gunicorn cmd
 gunicorn 'flaskr:create_app()'
 
+# to explore docker's filesystem
+docker exec -t -i [container_name] /bin/bash
+
+# pushing to docker hub
+# 1. create repository in docker hub : nlpmgmt
+# 2. make sure image's name starts with docker username
+# nlpmgmt to justinthe/nlpmgmt
+docker push justinthe/nlpmgmt
+
+# To save image to local 
+docker save -o <path to generated tar> <image name>
+#e.g
+docker save -o /home/Dev/bla.tar bla:v1
+
+# copy then to load:
+
+# to load
+docker load -i <path to image tar>

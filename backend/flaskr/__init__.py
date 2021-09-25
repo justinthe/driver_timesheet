@@ -68,6 +68,7 @@ def create_app(test_config=None):
         dtend = request.args.get('dtend', def_dtend, type=toDate) 
         approvedonly_par = request.args.get('approvedonly', "True")
         approvedonly = False
+        print("dtstart: {}; dtend: {}".format(str(dtstart), str(dtend)))
         
         if approvedonly_par.lower() == "true":
             approvedonly = True
@@ -131,7 +132,19 @@ def create_app(test_config=None):
     @app.route('/approve/<int:userid>', methods=['POST'])
     def bulk_approve(userid):
         body = request.get_json()
-        sql = "insert into rf_user (username, firstname, lastname) select 'kzheng', 'karen', 'zheng'"
+        # sql = "insert into rf_user (username, firstname, lastname) select 'kzheng', 'karen', 'zheng'"
+        sql_cmd_header = "insert into approval (userid, timesheetid, approval) " \
+                            "values (" + str(userid) + ", "
+        sql = ""
+        for i in body:
+            sql_cmd = sql_cmd_header + str(i['timesheetid']) +\
+                    ", " + str(i['approved']) + ");"
+            sql = sql + sql_cmd
+            # for key in i:
+            #     sql_cmd = sql_cmd_header + str(i[key]) + ", " 
+            #     # print(sql_cmd)
+        
+        print(sql)
         try:
             data = DBUtil.call_raw_sql(sql)
             return jsonify({

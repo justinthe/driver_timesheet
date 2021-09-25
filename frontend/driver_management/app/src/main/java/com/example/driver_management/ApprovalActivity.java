@@ -1,0 +1,235 @@
+package com.example.driver_management;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import android.app.DatePickerDialog;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.DatePicker;
+import android.widget.EditText;
+
+import com.androidnetworking.AndroidNetworking;
+import com.androidnetworking.common.Priority;
+import com.androidnetworking.error.ANError;
+import com.androidnetworking.interfaces.JSONArrayRequestListener;
+import com.androidnetworking.interfaces.JSONObjectRequestListener;
+import com.google.gson.Gson;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.Executors;
+
+public class ApprovalActivity extends AppCompatActivity {
+
+
+    private static String TAG = "ApprovalActivity";
+
+    private ApprovalAdapter adapter;
+    private ArrayList<Approval> approvalArrayList;
+
+    private RecyclerView recyclerView;
+    private Button btnApprove;
+    private Button btnReject;
+    private Button btnRun;
+    private EditText eTextStartDate;
+    private EditText eTextEndDate;
+
+    final Calendar myCalendar = Calendar.getInstance();
+    private String api_url;
+
+    Map<String, String> pMap = new HashMap<String, String>();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_approval);
+        AndroidNetworking.initialize(getApplicationContext());
+
+        api_url = getString(R.string.url_get_timesheet);
+        pMap.put("approvedonly", "False");
+        addData();
+
+        btnApprove = (Button) findViewById(R.id.buttonApprove);
+        btnReject = (Button) findViewById(R.id.buttonReject);
+        btnRun = (Button) findViewById(R.id.buttonRun);
+
+        recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
+        Log.d(TAG, "approvalArrayList size: " + approvalArrayList.size());
+        adapter = new ApprovalAdapter(approvalArrayList);
+
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(ApprovalActivity.this);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(adapter);
+
+        eTextStartDate = (EditText) findViewById(R.id.textboxStartdate);
+        DatePickerDialog.OnDateSetListener sDate = new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker datePicker, int i, int i1, int i2) {
+                myCalendar.set(Calendar.YEAR, i);
+                myCalendar.set(Calendar.MONTH, i1);
+                myCalendar.set(Calendar.DAY_OF_MONTH, i2);
+                updateLabel(eTextStartDate);
+            }
+        };
+
+        eTextEndDate = (EditText) findViewById(R.id.textboxEnddate);
+        DatePickerDialog.OnDateSetListener eDate = new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker datePicker, int i, int i1, int i2) {
+                myCalendar.set(Calendar.YEAR, i);
+                myCalendar.set(Calendar.MONTH, i1);
+                myCalendar.set(Calendar.DAY_OF_MONTH, i2);
+                updateLabel(eTextEndDate);
+            }
+        };
+
+
+        btnApprove.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d(TAG, "Datalist.length: " + approvalArrayList.size());
+                for (int i = 0; i < approvalArrayList.size(); i++) {
+                    Approval app = approvalArrayList.get(i);
+                    Log.d(TAG, "Timesheetid: " + app.getTimesheetId() + "; approval: " + app.isApproved());
+                }
+            }
+        });
+
+        btnRun.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                populateData();
+//                String sDate = eTextStartDate.getText().toString();
+//                String eDate = eTextEndDate.getText().toString();
+//                Log.d(TAG, "Start: " + sDate + "; End: " + eDate);
+//                pMap.put("dtstart", sDate);
+//                pMap.put("dtend", eDate);
+//                approvalArrayList.clear();
+//                addData();
+//                adapter.notifyDataSetChanged();
+            }
+        });
+
+        eTextStartDate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new DatePickerDialog(ApprovalActivity.this, sDate, myCalendar.get(Calendar.YEAR),
+                        myCalendar.get(Calendar.MONTH), myCalendar.get(Calendar.DAY_OF_MONTH)).show();
+            }
+        });
+
+        eTextEndDate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new DatePickerDialog(ApprovalActivity.this, eDate, myCalendar.get(Calendar.YEAR),
+                        myCalendar.get(Calendar.MONTH), myCalendar.get(Calendar.DAY_OF_MONTH)).show();
+            }
+        });
+    }
+
+    public void populateData() {
+        String sDate = eTextStartDate.getText().toString();
+        String eDate = eTextEndDate.getText().toString();
+        Log.d(TAG, "Start: " + sDate + "; End: " + eDate);
+        pMap.put("dtstart", sDate);
+        pMap.put("dtend", eDate);
+        approvalArrayList.clear();
+//        addData();
+        PopulateDataRunnable runnable = new PopulateDataRunnable();
+        new Thread(runnable).start();
+    }
+
+    class PopulateDataRunnable implements Runnable {
+
+        @Override
+        public void run() {
+//            addData();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    addData();
+                    adapter.notifyDataSetChanged();
+                    Log.d(TAG, "run: " + pMap.size());
+                }
+            });
+
+        }
+    }
+
+    private void updateLabel(EditText pToChange) {
+        String myFormat = "yyyy-MM-dd";
+        SimpleDateFormat sdf = new SimpleDateFormat(myFormat, Locale.getDefault());
+        pToChange.setText(sdf.format(myCalendar.getTime()));
+    }
+
+    protected void addData() {
+//        https://github.com/amitshekhariitbhu/Fast-Android-Networking/issues/34
+//          setExecutore(Executors.newSingleThreadExecutor()) --> if not, data is not filled
+
+        approvalArrayList = new ArrayList<>();
+        Log.d(TAG, "Calling API....." + api_url);
+        Log.d(TAG, "pMap size: " + pMap.size());
+        AndroidNetworking.get(api_url)
+//                .addQueryParameter("approvedonly", "False")
+                .addQueryParameter(pMap)
+                .setPriority(Priority.MEDIUM)
+//                .setExecutor(Executors.newSingleThreadExecutor())   // need this line otherwise data is not filled when showing
+                .build()
+                .getAsJSONObject(new JSONObjectRequestListener() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.d(TAG, "response: " + response);
+                        Gson gson = new Gson();
+                        ApprovalJSON approvalJSON  = gson.fromJson(String.valueOf(response), ApprovalJSON.class);
+//                        Log.d(TAG, "class: " + approvalJSON);
+                        List tsheet = approvalJSON.timesheets;
+                        Log.d(TAG, "tsheet size: " + tsheet.size());
+                        for (int i = 0; i < tsheet.size(); i++) {
+                            ApprovalJSON.Timesheet ts = (ApprovalJSON.Timesheet) tsheet.get(i);
+//                            Log.d(TAG, "dttimeenter: " + ts.dttimeenter);
+                            Boolean respInout = ts.inout;
+                            int respTimesheetid = ts.timesheetid;
+                            int respUserid = ts.userid;
+                            String respStr_dt = ts.dttimeenter.substring(0, ts.dttimeenter.length() - 4);
+//                            Log.d(TAG, "respStr_dt: " + respStr_dt);
+                            DateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss");
+                            Date dt = new Date();
+                            try {
+                                dt = sdf.parse(respStr_dt);
+//                                sdf.applyPattern("yyyy/MMM/dd HH:mm:ss");
+
+                            } catch (ParseException e) {
+                                Log.d(TAG, "Error: " + e.toString());
+                            }
+//                            Log.d(TAG, "Date: " + dt);
+//                            Log.d(TAG, "Timesheetid: " + respTimesheetid);
+//                            Log.d(TAG, "userid: " + respUserid);
+//                            Log.d(TAG, "inout: " + respInout);
+
+                            approvalArrayList.add(new Approval(respTimesheetid, respUserid, dt, respInout));
+//                            adapter.notifyDataSetChanged();
+                        }
+                    }
+
+                    @Override
+                    public void onError(ANError anError) {
+                        Log.d(TAG, "Error: " + anError.toString());
+                    }
+                });
+    }
+}
