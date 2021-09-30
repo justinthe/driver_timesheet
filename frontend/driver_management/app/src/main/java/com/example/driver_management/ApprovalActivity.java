@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -15,11 +16,13 @@ import android.widget.EditText;
 import com.androidnetworking.AndroidNetworking;
 import com.androidnetworking.common.Priority;
 import com.androidnetworking.error.ANError;
-import com.androidnetworking.interfaces.JSONArrayRequestListener;
 import com.androidnetworking.interfaces.JSONObjectRequestListener;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.DateFormat;
@@ -29,10 +32,22 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
+
+/**************************************************************************************************
+*
+* Calling API to populate the recyclerview.
+* Calling method is put into a separate thread (addData() method, which calls GetDataFromAPI() class)
+* First time it loads, it does not send either dtstart and dtend. API is smart enough to generate the return list when no date start and date end provided. Default date range is current monday to friday.
+* Possible improvements:
+* 1. default date start and date end
+*
+**************************************************************************************************/
+
 
 public class ApprovalActivity extends AppCompatActivity {
 
@@ -40,7 +55,7 @@ public class ApprovalActivity extends AppCompatActivity {
     private static String TAG = "ApprovalActivity";
 
     private ApprovalAdapter adapter;
-    private ArrayList<Approval> approvalArrayList;
+    private volatile ArrayList<Approval> approvalArrayList;
 
     private RecyclerView recyclerView;
     private Button btnApprove;
@@ -51,8 +66,13 @@ public class ApprovalActivity extends AppCompatActivity {
 
     final Calendar myCalendar = Calendar.getInstance();
     private String api_url;
+    private String bulk_approve_api_url;
 
     Map<String, String> pMap = new HashMap<String, String>();
+
+    private Handler mainHandler = new Handler();
+    private volatile boolean stopAddDataThread = false;
+    private volatile boolean stopBulkApproveThread = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,7 +81,9 @@ public class ApprovalActivity extends AppCompatActivity {
         AndroidNetworking.initialize(getApplicationContext());
 
         api_url = getString(R.string.url_get_timesheet);
+        bulk_approve_api_url = getString(R.string.bulk_approve_api_url);
         pMap.put("approvedonly", "False");
+        approvalArrayList = new ArrayList<>();
         addData();
 
         btnApprove = (Button) findViewById(R.id.buttonApprove);
@@ -102,26 +124,28 @@ public class ApprovalActivity extends AppCompatActivity {
         btnApprove.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.d(TAG, "Datalist.length: " + approvalArrayList.size());
+//                Log.d(TAG, "Datalist.length: " + approvalArrayList.size());
+                String approverId = null;
                 for (int i = 0; i < approvalArrayList.size(); i++) {
                     Approval app = approvalArrayList.get(i);
-                    Log.d(TAG, "Timesheetid: " + app.getTimesheetId() + "; approval: " + app.isApproved());
+                    approverId = Integer.toString(app.getApproverId());
+                    Log.d(TAG, "Timesheetid: " + app.getTimesheetId() + "; approval: " + app.isApproved() + "; id: " + app.getApproverId());
                 }
+
+                approveTimesheets(approverId);
             }
         });
 
         btnRun.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                populateData();
-//                String sDate = eTextStartDate.getText().toString();
-//                String eDate = eTextEndDate.getText().toString();
-//                Log.d(TAG, "Start: " + sDate + "; End: " + eDate);
-//                pMap.put("dtstart", sDate);
-//                pMap.put("dtend", eDate);
-//                approvalArrayList.clear();
-//                addData();
-//                adapter.notifyDataSetChanged();
+                String sDate = eTextStartDate.getText().toString();
+                String eDate = eTextEndDate.getText().toString();
+                Log.d(TAG, "onClick: - Start: " + sDate + "; End: " + eDate);
+                pMap.put("dtstart", sDate);
+                pMap.put("dtend", eDate);
+
+                addData();
             }
         });
 
@@ -142,94 +166,158 @@ public class ApprovalActivity extends AppCompatActivity {
         });
     }
 
-    public void populateData() {
-        String sDate = eTextStartDate.getText().toString();
-        String eDate = eTextEndDate.getText().toString();
-        Log.d(TAG, "Start: " + sDate + "; End: " + eDate);
-        pMap.put("dtstart", sDate);
-        pMap.put("dtend", eDate);
-        approvalArrayList.clear();
-//        addData();
-        PopulateDataRunnable runnable = new PopulateDataRunnable();
-        new Thread(runnable).start();
-    }
-
-    class PopulateDataRunnable implements Runnable {
-
-        @Override
-        public void run() {
-//            addData();
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    addData();
-                    adapter.notifyDataSetChanged();
-                    Log.d(TAG, "run: " + pMap.size());
-                }
-            });
-
-        }
-    }
-
     private void updateLabel(EditText pToChange) {
         String myFormat = "yyyy-MM-dd";
         SimpleDateFormat sdf = new SimpleDateFormat(myFormat, Locale.getDefault());
         pToChange.setText(sdf.format(myCalendar.getTime()));
     }
 
+    protected void approveTimesheets(String approverId) {
+        BulkApproveAPI runnable = new BulkApproveAPI(approvalArrayList, bulk_approve_api_url, approverId);
+        new Thread(runnable).start();
+    }
+
+    class BulkApproveAPI extends Thread {
+        ArrayList<Approval> approvalArrayList;
+        String bulk_approve_api_url;
+        String approverId;
+
+        BulkApproveAPI(ArrayList approvalArrayList, String bulk_approve_api_url, String approverId) {
+            this.approvalArrayList = approvalArrayList;
+            this.approverId = approverId;
+            this.bulk_approve_api_url = bulk_approve_api_url + approverId;
+
+        }
+
+        @Override
+        public void run() {
+           /*
+            [{
+                 "timesheetid": 64,
+                 "approved": true
+             },
+             {
+                 "timesheetid": 63,
+                 "approved": false
+             }]
+           */
+
+            Log.d(TAG, "run: API : " + bulk_approve_api_url);
+//            JSONObject body = new JSONObject();
+            String jsonStr = new String();
+            jsonStr = "[";
+            for (int i = 0; i < approvalArrayList.size(); i++) {
+                Approval app = approvalArrayList.get(i);
+//                Log.d(TAG, "timesheetid: "  + app.getTimesheetId() + "; approval: " + app.isApproved());
+                jsonStr = jsonStr + "{\"timesheetid\":" + app.getTimesheetId() + ", \"approved\":" + app.isApproved() + "},";
+//                try {
+//                    body.put("timesheetid", app.getTimesheetId());
+//                    body.put("approved", app.isApproved());
+//                } catch (JSONException e) {
+//                    Log.e(TAG, "run: Error putting value into JSONBody. Error: " + e.getMessage(), e);
+//                }
+            }
+            jsonStr = jsonStr.substring(0, jsonStr.length()-1);
+            jsonStr += "]";
+            Log.d(TAG, "jsonStr: " + jsonStr);
+            JSONArray array = null;
+            try {
+                array = new JSONArray(jsonStr);
+            } catch (JSONException e) {
+                Log.d(TAG, "run: " + e.getMessage());
+//                e.printStackTrace();
+            }
+
+            Log.d(TAG, "jsonbody: " + array.toString() );
+
+
+        }
+    }
+
     protected void addData() {
 //        https://github.com/amitshekhariitbhu/Fast-Android-Networking/issues/34
 //          setExecutore(Executors.newSingleThreadExecutor()) --> if not, data is not filled
+        approvalArrayList.clear();
+        stopAddDataThread = false;
+        GetDataFromAPI runnable = new GetDataFromAPI(approvalArrayList, api_url, pMap);
+        new Thread(runnable).start();
+    }
 
-        approvalArrayList = new ArrayList<>();
-        Log.d(TAG, "Calling API....." + api_url);
-        Log.d(TAG, "pMap size: " + pMap.size());
-        AndroidNetworking.get(api_url)
-//                .addQueryParameter("approvedonly", "False")
-                .addQueryParameter(pMap)
-                .setPriority(Priority.MEDIUM)
-//                .setExecutor(Executors.newSingleThreadExecutor())   // need this line otherwise data is not filled when showing
-                .build()
-                .getAsJSONObject(new JSONObjectRequestListener() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        Log.d(TAG, "response: " + response);
-                        Gson gson = new Gson();
-                        ApprovalJSON approvalJSON  = gson.fromJson(String.valueOf(response), ApprovalJSON.class);
-//                        Log.d(TAG, "class: " + approvalJSON);
-                        List tsheet = approvalJSON.timesheets;
-                        Log.d(TAG, "tsheet size: " + tsheet.size());
-                        for (int i = 0; i < tsheet.size(); i++) {
-                            ApprovalJSON.Timesheet ts = (ApprovalJSON.Timesheet) tsheet.get(i);
-//                            Log.d(TAG, "dttimeenter: " + ts.dttimeenter);
-                            Boolean respInout = ts.inout;
-                            int respTimesheetid = ts.timesheetid;
-                            int respUserid = ts.userid;
-                            String respStr_dt = ts.dttimeenter.substring(0, ts.dttimeenter.length() - 4);
-//                            Log.d(TAG, "respStr_dt: " + respStr_dt);
-                            DateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss");
-                            Date dt = new Date();
-                            try {
-                                dt = sdf.parse(respStr_dt);
-//                                sdf.applyPattern("yyyy/MMM/dd HH:mm:ss");
+    public void setStopAddDataThread(View view) {
+        stopAddDataThread = true;
+    }
 
-                            } catch (ParseException e) {
-                                Log.d(TAG, "Error: " + e.toString());
+
+    class GetDataFromAPI extends Thread {
+
+        ArrayList<Approval> approvalArrayList;
+        String api_url;
+        Map<String, String> pMap;
+
+        GetDataFromAPI(ArrayList approvalArrayList, String api_url, Map pMap) {
+            this.approvalArrayList = approvalArrayList;
+            this.api_url = api_url;
+            this.pMap = pMap;
+        }
+
+        @Override
+        public void run() {
+            Log.d(TAG, "Calling API....." + api_url);
+            Log.d(TAG, "pMap size: " + pMap.size());
+            Log.d(TAG, "addData: " + approvalArrayList.size());
+            Log.d(TAG, "run: sdate - " + pMap.get("dtstart") + "; edate - " + pMap.get("dtend"));
+
+            AndroidNetworking.get(api_url)
+                    .addQueryParameter(pMap)
+                    .setPriority(Priority.MEDIUM)
+                    .setExecutor(Executors.newSingleThreadExecutor())   // need this line otherwise data is not filled when showing
+                    .build()
+                    .getAsJSONObject(new JSONObjectRequestListener() {
+                        @Override
+                        public void onResponse(JSONObject response) {
+                            Log.d(TAG, "response: " + response);
+                            Gson gson = new Gson();
+                            ApprovalJSON approvalJSON = gson.fromJson(String.valueOf(response), ApprovalJSON.class);
+                            List tsheet = approvalJSON.timesheets;
+                            Log.d(TAG, "onResponse: Timesheets size - " + tsheet.size());
+                            for (int i = 0; i < tsheet.size(); i++) {
+                                ApprovalJSON.Timesheet ts = (ApprovalJSON.Timesheet) tsheet.get(i);
+                                Boolean respInout = ts.inout;
+                                int respTimesheetid = ts.timesheetid;
+                                int respUserid = ts.userid;
+                                String respStr_dt = ts.dttimeenter.substring(0, ts.dttimeenter.length() -4);    // remove GMT from the datetime
+                                DateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss");
+                                Date dt = new Date();
+                                try {
+                                    dt = sdf.parse(respStr_dt);
+                                } catch (ParseException e) {
+                                    Log.d(TAG, "onResponse: Error - " + e.getMessage());
+                                }
+
+                                approvalArrayList.add(new Approval(respTimesheetid,
+                                                                    respUserid,
+                                                                    dt,
+                                                                    respInout)
+                                                        );
+
+                                // notify main thread list has changed
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        adapter.notifyDataSetChanged();
+                                    }
+                                });
                             }
-//                            Log.d(TAG, "Date: " + dt);
-//                            Log.d(TAG, "Timesheetid: " + respTimesheetid);
-//                            Log.d(TAG, "userid: " + respUserid);
-//                            Log.d(TAG, "inout: " + respInout);
-
-                            approvalArrayList.add(new Approval(respTimesheetid, respUserid, dt, respInout));
-//                            adapter.notifyDataSetChanged();
                         }
-                    }
 
-                    @Override
-                    public void onError(ANError anError) {
-                        Log.d(TAG, "Error: " + anError.toString());
-                    }
-                });
+
+                        @Override
+                        public void onError(ANError anError) {
+                            Log.d(TAG, "Error: " + anError.toString());
+                            Log.d(TAG, "onError: " + anError.getErrorBody());
+                            Log.d(TAG, "onError: " + anError.getErrorDetail());
+                        }
+                    });
+        }
     }
 }
