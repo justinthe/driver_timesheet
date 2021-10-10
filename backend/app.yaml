@@ -1,0 +1,12 @@
+runtime: python
+env: flex
+entrypoint: "gunicorn flaskr:create_app()"
+
+runtime_config:
+    python_version: 3
+
+env_variables:
+    FLASK_APP: "flaskr"
+    DB_USER: "postgres"
+    DB_PASSWORD: "password"
+    PYTHONDONTWRITEBYTECODE: 1
