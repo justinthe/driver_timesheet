@@ -12,14 +12,13 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.androidnetworking.AndroidNetworking;
 import com.androidnetworking.common.Priority;
 import com.androidnetworking.error.ANError;
 import com.androidnetworking.interfaces.JSONObjectRequestListener;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonParser;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -32,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -40,11 +38,14 @@ import java.util.concurrent.Executors;
 
 /**************************************************************************************************
 *
-* Calling API to populate the recyclerview.
-* Calling method is put into a separate thread (addData() method, which calls GetDataFromAPI() class)
-* First time it loads, it does not send either dtstart and dtend. API is smart enough to generate the return list when no date start and date end provided. Default date range is current monday to friday.
-* Possible improvements:
-* 1. default date start and date end
+* - Calling API to populate the recyclerview.
+* - Calling method is put into a separate thread (addData() method,
+*   which calls GetDataFromAPI() class)
+* - First time it loads, it does not send either dtstart and dtend.
+ *  API is smart enough to generate the return list when no date start and date end provided.
+ *  Default date range is current monday to friday.
+* - Possible improvements:
+*   1. default date start and date end
 *
 **************************************************************************************************/
 
@@ -55,7 +56,7 @@ public class ApprovalActivity extends AppCompatActivity {
     private static String TAG = "ApprovalActivity";
 
     private ApprovalAdapter adapter;
-    private volatile ArrayList<Approval> approvalArrayList;
+    private ArrayList<Approval> approvalArrayList;
 
     private RecyclerView recyclerView;
     private Button btnApprove;
@@ -82,16 +83,17 @@ public class ApprovalActivity extends AppCompatActivity {
 
         api_url = getString(R.string.url_get_timesheet);
         bulk_approve_api_url = getString(R.string.bulk_approve_api_url);
-        pMap.put("approvedonly", "False");
+        pMap.put("needapprovedonly", "True");
         approvalArrayList = new ArrayList<>();
-        addData();
+
+        generateData();
 
         btnApprove = (Button) findViewById(R.id.buttonApprove);
         btnReject = (Button) findViewById(R.id.buttonReject);
         btnRun = (Button) findViewById(R.id.buttonRun);
 
         recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
-        Log.d(TAG, "approvalArrayList size: " + approvalArrayList.size());
+//        Log.d(TAG, "approvalArrayList size: " + approvalArrayList.size());
         adapter = new ApprovalAdapter(approvalArrayList);
 
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(ApprovalActivity.this);
@@ -145,7 +147,7 @@ public class ApprovalActivity extends AppCompatActivity {
                 pMap.put("dtstart", sDate);
                 pMap.put("dtend", eDate);
 
-                addData();
+                generateData();
             }
         });
 
@@ -180,46 +182,37 @@ public class ApprovalActivity extends AppCompatActivity {
     class BulkApproveAPI extends Thread {
         ArrayList<Approval> approvalArrayList;
         String bulk_approve_api_url;
-        String approverId;
+//        String approverId;
 
         BulkApproveAPI(ArrayList approvalArrayList, String bulk_approve_api_url, String approverId) {
             this.approvalArrayList = approvalArrayList;
-            this.approverId = approverId;
+//            this.approverId = approverId;
             this.bulk_approve_api_url = bulk_approve_api_url + approverId;
 
         }
 
         @Override
         public void run() {
-           /*
-            [{
-                 "timesheetid": 64,
-                 "approved": true
-             },
-             {
-                 "timesheetid": 63,
-                 "approved": false
-             }]
-           */
-
             Log.d(TAG, "run: API : " + bulk_approve_api_url);
-//            JSONObject body = new JSONObject();
+
             String jsonStr = new String();
+            ArrayList<Integer> itemsToRemove = new ArrayList<Integer>();
             jsonStr = "[";
+
             for (int i = 0; i < approvalArrayList.size(); i++) {
                 Approval app = approvalArrayList.get(i);
-//                Log.d(TAG, "timesheetid: "  + app.getTimesheetId() + "; approval: " + app.isApproved());
-                jsonStr = jsonStr + "{\"timesheetid\":" + app.getTimesheetId() + ", \"approved\":" + app.isApproved() + "},";
-//                try {
-//                    body.put("timesheetid", app.getTimesheetId());
-//                    body.put("approved", app.isApproved());
-//                } catch (JSONException e) {
-//                    Log.e(TAG, "run: Error putting value into JSONBody. Error: " + e.getMessage(), e);
-//                }
+
+                if (app.isApproved()) {
+                    jsonStr = jsonStr + "{\"timesheetid\":" + app.getTimesheetId() +
+                            ", \"approved\":" + app.isApproved() + "},";
+                    itemsToRemove.add(i);
+                }
             }
+
             jsonStr = jsonStr.substring(0, jsonStr.length()-1);
             jsonStr += "]";
             Log.d(TAG, "jsonStr: " + jsonStr);
+
             JSONArray array = null;
             try {
                 array = new JSONArray(jsonStr);
@@ -227,14 +220,55 @@ public class ApprovalActivity extends AppCompatActivity {
                 Log.d(TAG, "run: " + e.getMessage());
 //                e.printStackTrace();
             }
+//            Log.d(TAG, "jsonbody: " + array.toString() );
 
-            Log.d(TAG, "jsonbody: " + array.toString() );
+            AndroidNetworking.post(bulk_approve_api_url)
+                                .addJSONArrayBody(array)
+                                .setPriority(Priority.MEDIUM)
+                                .build()
+                                .getAsJSONObject(new JSONObjectRequestListener() {
+                                    @Override
+                                    public void onResponse(JSONObject response) {
+                                        Toast.makeText(getApplicationContext(), "Success", Toast.LENGTH_SHORT).show();
+                                        Log.d(TAG, "onResponse: " + response);
+                                    }
 
+                                    @Override
+                                    public void onError(ANError anError) {
+                                        Log.d(TAG, "onError: " + anError.getErrorDetail());
+                                    }
+                                });
+            /*
+            TODO:
+            update UI
+            notifyItemRemoved(int position)
+            */
 
+//            addData();
+//            Log.d(TAG, "run bulk approve 1: " + approvalArrayList.size());
+//            Log.d(TAG, "run itemstoremove size: " + itemsToRemove.size());
+//            for (int i = 0; i < itemsToRemove.size(); i++) {
+//                Log.d(TAG, "itemsToRemove: " + itemsToRemove.get(i));
+//                Approval app = approvalArrayList.get(itemsToRemove.get(i));
+//                Log.d(TAG, "toberemoved: " + app.getTimesheetId());
+//                approvalArrayList.remove(app);
+////                        adapter.notifyItemRemoved(itemsToRemove.get(i));
+////                        adapter.notifyItemRemoved(i);
+//            }
+//            Log.d(TAG, "run bulk approve 2: " + approvalArrayList.size());
+//            runOnUiThread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    Log.d(TAG, "run bulk approve: " + approvalArrayList.size() );
+//                    adapter.notifyDataSetChanged();
+////                    recyclerView.invalidate();
+//                }
+//            });
+            generateData();
         }
     }
 
-    protected void addData() {
+    protected void generateData() {
 //        https://github.com/amitshekhariitbhu/Fast-Android-Networking/issues/34
 //          setExecutore(Executors.newSingleThreadExecutor()) --> if not, data is not filled
         approvalArrayList.clear();
@@ -304,7 +338,12 @@ public class ApprovalActivity extends AppCompatActivity {
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
+                                        Log.d(TAG, "notifyDatasetChanged");
+                                        recyclerView.setAdapter(null);
+                                        recyclerView.setAdapter(adapter);
                                         adapter.notifyDataSetChanged();
+                                        recyclerView.invalidate();
+                                        recyclerView.getRecycledViewPool().clear();
                                     }
                                 });
                             }

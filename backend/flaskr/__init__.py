@@ -66,18 +66,18 @@ def create_app(test_config=None):
         def_dtstart, def_dtend = default_dtstart_dtend()
         dtstart = request.args.get('dtstart', def_dtstart, type=toDate) 
         dtend = request.args.get('dtend', def_dtend, type=toDate) 
-        approvedonly_par = request.args.get('approvedonly', "True")
-        approvedonly = False
+        needapprovedonly_par = request.args.get('needapprovedonly', "True")
+        needapprovedonly = False
         print("dtstart: {}; dtend: {}".format(str(dtstart), str(dtend)))
         
-        if approvedonly_par.lower() == "true":
-            approvedonly = True
+        if needapprovedonly_par.lower() == "true":
+            needapprovedonly = True
 
-        if approvedonly:
+        if needapprovedonly:
             selection = Timesheet.query\
                     .filter(Timesheet.dttimeenter >= dtstart)\
                     .filter(Timesheet.dttimeenter <= dtend)\
-                    .filter(exists().where(Approval.timesheetid == Timesheet.timesheetid))\
+                    .filter(~exists().where(Approval.timesheetid == Timesheet.timesheetid))\
                     .order_by(Timesheet.dttimeenter).all()
 
         else:        

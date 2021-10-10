@@ -41,7 +41,7 @@ public class ApprovalAdapter extends RecyclerView.Adapter<ApprovalAdapter.Approv
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 dataList.get(pos).setApproved(b);
-                Log.d(TAG, "timesheetid: " + b);
+                Log.d(TAG, "timesheetid: " + dataList.get(pos).getTimesheetId() + "; val: " + b);
             }
         });
     }

@@ -2,5 +2,5 @@
     <string name="app_name">driver_management</string>
 <!--    <string name="url_get_timesheet">http://10.0.2.2:5000/approvals/23</string>-->
     <string name="url_get_timesheet">http://10.0.2.2:5000/timesheets</string>
-    <string name="bulk_approve_api_url">http://10.0.2.2.:5000/approve/</string>
+    <string name="bulk_approve_api_url">http://10.0.2.2:5000/approve/</string>
 </resources>

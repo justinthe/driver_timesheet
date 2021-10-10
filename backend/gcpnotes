@@ -1,0 +1,20 @@
+postgresql
+Instance ID     : driver-timesheet
+password        : password
+db ver          : postgresql 13
+
+
+database name   : driver-management
+
+username        : flask-connection
+password        : password
+
+gcloud sql connect driver-timesheet --user=postgres --quiet
+
+# https://www.youtube.com/watch?v=VgixM-4ckJA
+download and install cloud_sql_proxy, then in the folder, run:
+./cloud_sql_proxy -instances=driver-management-328507:asia-southeast2:driver-timesheet=tcp:0.0.0.0:1234
+
+go to pgAdmin, use 0.0.0.0:1234 for the connection info
+postgres as username
+password as password
