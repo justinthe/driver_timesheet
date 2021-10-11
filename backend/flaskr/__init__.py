@@ -12,7 +12,7 @@ from models import *
 from flask_cors import CORS
 import sys
 from functools import wraps
-from auth import AuthError, requires_auth
+# from auth import AuthError, requires_auth
 from datetime import datetime, timedelta
 
 
@@ -268,14 +268,14 @@ def create_app(test_config=None):
             "message": "method not supported",
             }), 404
     
-    @app.errorhandler(AuthError)
-    def auth_error(AuthError):
-        return jsonify({
-            "success": False, 
-            "error code": AuthError.status_code,
-            "description": AuthError.error,
-            }), AuthError.status_code
-    
+    # @app.errorhandler(AuthError)
+    # def auth_error(AuthError):
+    #     return jsonify({
+    #         "success": False, 
+    #         "error code": AuthError.status_code,
+    #         "description": AuthError.error,
+    #         }), AuthError.status_code
+    # 
 
 
     return app
