@@ -12,8 +12,13 @@ database_name = "driver_timesheet"
 
 db_username = os.environ["DB_USER"]
 db_password = os.environ["DB_PASSWORD"]
-db_host = os.environ["DB_HOST"]
-database_path = "postgresql://{}:{}@{}/{}".format(db_username, db_password, db_host, database_name)
+db_name = os.environ["DB_NAME"]
+db_connection_name = os.environ["DB_SQL_CONNECTION_NAME"]
+# database_path = "postgresql://{}:{}@{}/{}".format(db_username, db_password, db_host, database_name)
+database_path = "postgresql://{}:{}@/{}?host=/cloudsql/{}".format(db_username,
+                                                                    db_password,
+                                                                    db_name,
+                                                                    db_connection_name)
 
 
 
