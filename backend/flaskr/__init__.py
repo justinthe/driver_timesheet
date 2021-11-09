@@ -28,6 +28,11 @@ def paginate_records(request, selection):
 
     return current_selections
 
+
+def toDatetime(dateString):
+    dt = datetime.strptime(dateString, "%Y-%m-%d %H:%M:%S")
+    return dt
+
 # https://stackoverflow.com/questions/53460391/passing-a-date-as-a-url-parameter-to-a-flask-route
 def toDate(dateString):
     dt = datetime.strptime(dateString, "%Y-%m-%d").date()
@@ -103,9 +108,12 @@ def create_app(test_config=None):
         body = request.get_json()
 
         useradding = User.query.filter(User.userid == userid).one_or_none()
-        dttimeenter = datetime.now()
+        dateentered = body.get('dttimeenter', None)
+        dttimeenter = toDatetime(dateentered)
+        # dttimeenter = datetime.now()
         inout = body.get('inout', None)
 
+        print("user: {}; dttimeenter: {}; inout: {}".format(useradding, dttimeenter, inout))
         try:
            timetoadd = Timesheet(user=useradding, dttimeenter=dttimeenter, inout=inout)
            timetoadd.addEntry()

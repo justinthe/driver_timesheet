@@ -8,17 +8,20 @@ import json
 
 database_name = "driver_timesheet"
 
-# database_path = "postgresql://{}:{}@{}/{}".format("postgres", "password", "localhost:5432", database_name)
-
 db_username = os.environ.get("DB_USER")
 db_password = os.environ.get("DB_PASSWORD")
 db_name = os.environ.get("DB_NAME")
 db_connection_name = os.environ.get("DB_SQL_CONNECTION_NAME")
 # database_path = "postgresql://{}:{}@{}/{}".format(db_username, db_password, db_host, database_name)
-database_path = "postgresql://{}:{}@/{}?host=/cloudsql/{}".format(db_username,
-                                                                    db_password,
-                                                                    db_name,
-                                                                    db_connection_name)
+
+# comment this for production
+database_path = "postgresql://{}:{}@{}/{}".format("postgres", "password", "localhost:5432", database_name)
+
+# uncomment this for prod @gcp
+# database_path = "postgresql://{}:{}@/{}?host=/cloudsql/{}".format(db_username,
+#                                                                     db_password,
+#                                                                     db_name,
+#                                                                     db_connection_name)
 
 
 

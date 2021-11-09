@@ -18,3 +18,8 @@ download and install cloud_sql_proxy, then in the folder, run:
 go to pgAdmin, use 0.0.0.0:1234 for the connection info
 postgres as username
 password as password
+
+Connect App Engine to cloudsql
+https://www.youtube.com/watch?v=dURd1aTdJqg&t=483s
+
+
